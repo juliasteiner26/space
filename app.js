@@ -133,12 +133,10 @@ const btnInstallUpdate = document.getElementById('btn-install-update');
 const appVersionEl = document.getElementById('app-version');
 
 const settingsModal = document.getElementById('settings-modal');
-const mirrorSelfCheck = document.getElementById('cam-mirror-self');
-const mirrorOthersCheck = document.getElementById('cam-mirror-others');
+const mirrorCheck = document.getElementById('cam-mirror');
 const micSelect = document.getElementById('mic-select');
 const camSelect = document.getElementById('camera-select');
 const speakerSelect = document.getElementById('speaker-select');
-
 
 // ---------------------------------------------------------------------------
 // UTILIDADES
@@ -176,12 +174,9 @@ function setStatus(text, connected = false) {
   statusBadge.classList.toggle('connected', connected);
 }
 
-
-
 // ---------------------------------------------------------------------------
 // SALAS (banco local)
 // ---------------------------------------------------------------------------
-
 
 function getRoomsDatabase() {
   return JSON.parse(localStorage.getItem('app_rooms_db') || '{}');
@@ -205,8 +200,6 @@ function deleteRoomFromDb(name) {
   localStorage.setItem('app_rooms_db', JSON.stringify(db));
   renderMyRooms();
 }
-
-
 
 // ---------------------------------------------------------------------------
 // MINHAS SALAS (lista lateral do lobby)
@@ -296,7 +289,7 @@ function renderMyRooms() {
     return `
       <div class="room-card-row${r.exclusive ? ' exclusive' : ''}">
         <div class="room-card-info">
-          <strong>${r.exclusive ? '💖 ' : ''}${name}</strong>
+          <strong>${name}</strong>
           <span>${escapeHtml(sub)}</span>
         </div>
         <button class="btn-enter-room" data-action="enter-listed" data-name="${name}">Entrar</button>
@@ -1314,7 +1307,7 @@ function setJoinBusy(busy) {
   btnJoinRoom.disabled = busy;
   btnCreateRoom.disabled = busy;
   btnJoinRoom.innerText = (busy && joinOrigin === 'join') ? '⏳ Verificando...' : '🔌 Entrar na sala';
-  btnCreateRoom.innerText = (busy && joinOrigin === 'create') ? '⏳ Verificando...' : ' Criar e entrar';
+  btnCreateRoom.innerText = (busy && joinOrigin === 'create') ? '⏳ Verificando...' : 'Criar e entrar';
   myRoomsList.classList.toggle('busy', busy);
 }
 
@@ -1369,7 +1362,7 @@ async function enterRoomUI(session) {
     createExclusive.checked = false;
     // Ferramentas extras (sorteador) só aparecem na sala exclusiva
     document.querySelectorAll('.exclusive-only').forEach(el => el.classList.toggle('hidden', !currentRoomExclusive));
-    document.getElementById('room-name-display').innerText = `${currentRoomExclusive ? '💖' : '🔒'} Sala: ${currentRoomName}`;
+    document.getElementById('room-name-display').innerText = `🔒 Sala: ${currentRoomName}`;
     lobbyScreen.classList.add('hidden');
 
     isMicMuted = true;
@@ -1718,7 +1711,6 @@ function stopAppAudio() {
 // TRANSMISSÃO DE TELA
 // ===========================================================================
 
-
 function stopScreenShare() {
   stopAppAudio();
   if (screenStream) {
@@ -1891,23 +1883,19 @@ chatInput.addEventListener('keydown', (e) => {
 // ===========================================================================
 // CÂMERA
 // ===========================================================================
-// Modo espelhado: "para mim" muda só a sua tela; "para os outros" avisa quem assiste para inverter a sua imagem
-function getMirrorSelf() { return localStorage.getItem('app_cam_mirror_self') !== '0'; } // padrão: ligado
-function getMirrorOthers() { return localStorage.getItem('app_cam_mirror_others') === '1'; }
+// Modo espelhado: vale para você (na sua tela) e para quem assiste (que recebe o aviso para inverter a sua imagem)
+function getMirror() { return localStorage.getItem('app_cam_mirror') === '1'; }
 
 function applyMirror() {
-  localCam.classList.toggle('mirrored', getMirrorSelf());
-  myProfile.mirror = getMirrorOthers();
+  const on = getMirror();
+  localCam.classList.toggle('mirrored', on);
+  myProfile.mirror = on;
 }
 
 function updateCamButton() {
   btnToggleCam.classList.toggle('btn-highlight', !!camStream);
   btnToggleCam.title = camStream ? 'Desligar câmera' : 'Ligar câmera';
 }
-
-
-
-
 
 async function startCamera() {
   if (camStream || !roomEntered) return;
@@ -2037,20 +2025,14 @@ async function ensureDeviceLabels() {
 }
 
 async function openSettings() {
-  mirrorSelfCheck.checked = getMirrorSelf();
-  mirrorOthersCheck.checked = getMirrorOthers();
+  mirrorCheck.checked = getMirror();
   settingsModal.classList.add('active');
   await ensureDeviceLabels();
   await refreshDeviceLists();
 }
 
-mirrorSelfCheck.addEventListener('change', () => {
-  localStorage.setItem('app_cam_mirror_self', mirrorSelfCheck.checked ? '1' : '0');
-  applyMirror();
-});
-
-mirrorOthersCheck.addEventListener('change', () => {
-  localStorage.setItem('app_cam_mirror_others', mirrorOthersCheck.checked ? '1' : '0');
+mirrorCheck.addEventListener('change', () => {
+  localStorage.setItem('app_cam_mirror', mirrorCheck.checked ? '1' : '0');
   applyMirror();
   broadcast({ type: 'PROFILE_UPDATE', profile: myProfile }); // quem está na sala passa a ver já
 });
